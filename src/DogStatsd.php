@@ -90,8 +90,9 @@ class DogStatsd
      * metric_prefix,
      * disable_telemetry,
      * container_id,
-     * origin_detection
-     * flush_failure_handler
+     * origin_detection,
+     * flush_failure_handler,
+     * filter_global_tags_callback
      *
      * @param array{
      *     host?: string,
@@ -105,7 +106,8 @@ class DogStatsd
      *     disable_telemetry?: bool,
      *     container_id?: string,
      *     origin_detection?: bool,
-     *     flush_failure_handler?: callable
+     *     flush_failure_handler?: callable,
+     *     filter_global_tags_callback?: (callable(array<array-key, mixed>): array<array-key, mixed>),
      * } $config
      */
     public function __construct(array $config = array())
@@ -161,6 +163,9 @@ class DogStatsd
         }
         if (getenv('DD_VERSION')) {
             $this->globalTags['version'] = getenv('DD_VERSION');
+        }
+        if (isset($config['filter_global_tags_callback'])) {
+            $this->globalTags = call_user_func($config['filter_global_tags_callback'], $this->globalTags);
         }
 
         $this->metricPrefix = isset($config['metric_prefix']) ? "$config[metric_prefix]." : '';
