@@ -1834,6 +1834,49 @@ class SocketsTest extends SocketSpyTestCase
         );
     }
 
+    public function testFilterGlobalTagsCallbackReceivesNormalizedStringTags()
+    {
+        $this->disableOriginDetectionLinux();
+
+        $receivedTags = null;
+        $dog = new DogStatsd(array(
+            'global_tags' => 'env:prod,service:web,version',
+            'disable_telemetry' => false,
+            'filter_global_tags_callback' => function (array $tags) use (&$receivedTags) {
+                $receivedTags = $tags;
+                $tags['service'] = 'filteredService';
+
+                return $tags;
+            }
+        ));
+
+        $this->assertSame(
+            array(
+                'env' => 'prod',
+                'service' => 'web',
+                'version' => null
+            ),
+            $receivedTags
+        );
+
+        $dog->timing('metric', 42, 1.0);
+        $spy = $this->getSocketSpy();
+        $this->assertSame(
+            1,
+            count($spy->argsFromSocketSendtoCalls),
+            'Should send 1 UDP message'
+        );
+        $expectedUdpMessage = 'metric:42|ms|#env:prod,service:filteredService,version';
+        $argsPassedToSocketSendTo = $spy->argsFromSocketSendtoCalls[0];
+
+        $this->assertSameWithTelemetry(
+            $expectedUdpMessage,
+            $argsPassedToSocketSendTo[1],
+            "",
+            array("tags" => "env:prod,service:filteredService,version")
+        );
+    }
+
     public function testCardinality()
     {
         $dog = new DogStatsd(array("disable_telemetry" => false));
