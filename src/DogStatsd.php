@@ -151,7 +151,7 @@ class DogStatsd
 
         $this->decimalPrecision = isset($config['decimal_precision']) ? $config['decimal_precision'] : 2;
 
-        $this->globalTags = isset($config['global_tags']) ? $config['global_tags'] : array();
+        $this->globalTags = $this->normalizeTags(isset($config['global_tags']) ? $config['global_tags'] : array());
         if (getenv('DD_ENTITY_ID')) {
             $this->globalTags['dd.internal.entity_id'] = getenv('DD_ENTITY_ID');
         }
